@@ -118,10 +118,11 @@ const protectedRoutes = [
 ];
 
 protectedRoutes.forEach(route => {
-  app.get(`/api/${route}`, checkAuth, (req, res) => {
+  app.get(`/${route}`, checkAuth, (req, res) => {
     res.sendFile(path.join(privateViewsDir, `${route}.html`));
   });
 });
+
 
 // Serve index.html for root
 app.get('/', (req, res) => {
