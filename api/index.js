@@ -15,8 +15,8 @@ const app = express();
 // Configuration
 // ======================
 const __dirnamePath = path.resolve();
-const publicDir = path.join(__dirnamePath, 'public');
-const privateViewsDir = path.join(__dirnamePath, 'private-views');
+const publicDir = path.join(__dirnamePath, '/public');
+const privateViewsDir = path.join(__dirnamePath, '/private-views');
 
 // Verify directories exist
 if (!fs.existsSync(publicDir) || !fs.existsSync(privateViewsDir)) {
