@@ -1,25 +1,35 @@
 {
-  "name": "vercel-express-website",
-  "version": "1.0.0",
-  "description": "A serverless Express application hosted on Vercel with Firebase authentication.",
+  "name": "vercel-express-firebase",
+  "version": "2.0.0",
+  "description": "Serverless Express.js on Vercel with Firebase Auth",
   "main": "api/index.js",
   "scripts": {
+    "dev": "cross-env NODE_ENV=development nodemon api/index.js",
     "start": "node api/index.js",
-    "dev": "nodemon api/index.js"
+    "build": "echo 'No build step required for serverless'",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
-    "express": "^4.17.1",
-    "firebase-admin": "^9.11.0",
-    "dotenv": "^10.0.0",
-    "serverless-http": "^2.7.0",
-    "cookie-parser": "^1.4.5",
-    "body-parser": "^1.19.0"
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.0",
+    "serverless-http": "^3.2.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "nodemon": "^3.0.2",
+    "cross-env": "^7.0.3",
+    "vercel": "^33.0.0"
   },
   "engines": {
-    "node": "14.x"
+    "node": ">=18.x"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": [
+    "serverless",
+    "express",
+    "vercel",
+    "firebase",
+    "lambda"
+  ]
 }
