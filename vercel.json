@@ -1,19 +1,18 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
+  "builds": [{
+    "src": "api/index.js",
+    "use": "@vercel/node",
+    "config": {
+      "includeFiles": [
+        "public/**",
+        "private-views/**"
+      ],
+      "maxLambdaSize": "50mb"
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "api/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "api/index.js"
-    }
-  ]
+  }],
+  "routes": [{
+    "src": "/(.*)",
+    "dest": "api/index.js"
+  }]
 }
