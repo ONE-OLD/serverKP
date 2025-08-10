@@ -6,116 +6,136 @@ const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
 
-// 1. INITIALIZATION =================================
-console.log('🚀 Starting server initialization...');
+// Initialize Express
+const app = express();
 
-// Verify directories
+// ======================
+// Configuration
+// ======================
 const publicDir = path.join(__dirname, '../public');
 const privateViewsDir = path.join(__dirname, '../private-views');
 
+// Verify directories exist
 if (!fs.existsSync(publicDir) || !fs.existsSync(privateViewsDir)) {
-  console.error('💥 Missing required directories');
+  console.error('Missing required directories');
   process.exit(1);
 }
 
-// 2. FIREBASE SETUP =================================
-let firebaseApp;
-try {
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  firebaseApp = admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: privateKey
-    })
-  });
-  console.log('🔥 Firebase initialized');
-} catch (firebaseError) {
-  console.error('❌ Firebase init failed:', firebaseError);
-  process.exit(1);
+// ======================
+// Middleware
+// ======================
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static(publicDir));
+
+// Cache control headers
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
+// ======================
+// Firebase Initialization
+// ======================
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      })
+    });
+    console.log('Firebase initialized successfully');
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+    process.exit(1);
+  }
 }
 
-// 3. AUTH MIDDLEWARE ================================
-const verifySession = async (req, res, next) => {
+// ======================
+// Authentication Middleware
+// ======================
+const checkAuth = async (req, res, next) => {
   const sessionCookie = req.cookies.session || '';
   
   try {
-    await admin.auth().verifySessionCookie(sessionCookie, true);
+    const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true);
+    req.user = decodedClaims;
     next();
   } catch (error) {
-    console.error('🔒 Auth failed:', error.message);
-    res.status(401).json({ error: 'Unauthorized' });
+    console.error('Authentication failed:', error);
+    res.redirect('/');
   }
 };
 
-// 4. EXPRESS APP ====================================
-const app = express();
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
+// ======================
+// Routes
+// ======================
 
-// 5. ROUTES ========================================
-const router = express.Router();
-
-// Health check
-router.get('/_health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    firebase: !!firebaseApp,
-    time: new Date().toISOString()
-  });
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Public routes
-router.get('/', (req, res) => {
-  res.sendFile(path.join('/public', 'index.html'));
-});
-
-// Auth endpoints
-router.post('/sessionLogin', async (req, res) => {
+// Login endpoint
+app.post('/api/sessionLogin', async (req, res) => {
   try {
     const sessionCookie = await admin.auth().createSessionCookie(req.body.idToken, {
-      expiresIn: 60 * 60 * 24 * 5 * 1000 // 5 days
+      expiresIn: 60 * 60 * 1000 // 1 hour
     });
     
     res.cookie('session', sessionCookie, {
-      maxAge: 86400000,
+      maxAge: 60 * 60 * 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       path: '/'
     });
     
     res.json({ status: 'success' });
   } catch (error) {
-    res.status(401).json({ error: 'Login failed' });
+    console.error('Login failed:', error);
+    res.status(401).json({ error: 'Unauthorized' });
   }
 });
 
 // Protected routes
-[
+const protectedRoutes = [
   'dashboard', 'apps', 'tutorials', 'html', 'css',
   'javascript', 'python', 'cpp', 'mysql', 'profile',
   'news', 'certificate', 'account'
-].forEach(page => {
-  router.get(`/${page}`, verifySession, (req, res) => {
-    res.sendFile(path.join(privateViewsDir, `${page}.html`));
+];
+
+protectedRoutes.forEach(route => {
+  app.get(`/api/${route}`, checkAuth, (req, res) => {
+    res.sendFile(path.join(privateViewsDir, `${route}.html`));
   });
 });
 
-// 6. ERROR HANDLING ================================
+// Serve index.html for root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+// ======================
+// Error Handling
+// ======================
 app.use((err, req, res, next) => {
-  console.error('💥 Server error:', err);
+  console.error('Server error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// 7. SERVERLESS EXPORT ============================
-const handler = serverless(app);
-console.log('✅ Server initialized successfully');
-
-// Vercel requires either:
-// module.exports = handler; // Default export
-// OR
-// module.exports.handler = handler; // Named export
-
-// Choose ONE of these:
-module.exports = handler; // Recommended simplest version
+// ======================
+// Serverless Export
+// ======================
+module.exports.handler = serverless(app, {
+  binary: ['image/*', 'application/*', 'text/*']
+});
