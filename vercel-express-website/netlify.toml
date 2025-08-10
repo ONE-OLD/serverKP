@@ -1,0 +1,11 @@
+[build]
+  # This command is a placeholder, as the serverless function is built automatically.
+  # The "echo" command ensures a successful build on Netlify's end.
+  command = "echo 'netlify functions are handled automatically'"
+  functions = "netlify/functions"
+  publish = "public" # Or whatever folder holds your frontend files.
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
