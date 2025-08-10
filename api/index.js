@@ -1,19 +1,22 @@
-const express = require('express');
-const serverless = require('serverless-http');
-const cookieParser = require('cookie-parser');
-const cors = require('cors');
-const admin = require('firebase-admin');
-const path = require('path');
-const fs = require('fs');
+// api/index.js
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import admin from 'firebase-admin';
+import path from 'path';
+import fs from 'fs';
 
+// ======================
 // Initialize Express
+// ======================
 const app = express();
 
 // ======================
 // Configuration
 // ======================
-const publicDir = path.join(__dirname, '../public');
-const privateViewsDir = path.join(__dirname, '../private-views');
+const __dirnamePath = path.resolve();
+const publicDir = path.join(__dirnamePath, 'public');
+const privateViewsDir = path.join(__dirnamePath, 'private-views');
 
 // Verify directories exist
 if (!fs.existsSync(publicDir) || !fs.existsSync(privateViewsDir)) {
@@ -134,8 +137,6 @@ app.use((err, req, res, next) => {
 });
 
 // ======================
-// Serverless Export
+// Export for Vercel
 // ======================
-module.exports.handler = serverless(app, {
-  binary: ['image/*', 'application/*', 'text/*']
-});
+export default app;
