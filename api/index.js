@@ -112,9 +112,10 @@ app.use((err, req, res, next) => {
 const handler = serverless(app);
 console.log('✅ Server initialized successfully');
 
-module.exports = { 
-  handler,
-  // For testing
-  _app: app,
-  _verifySession: verifySession
-};
+// Vercel requires either:
+// module.exports = handler; // Default export
+// OR
+// module.exports.handler = handler; // Named export
+
+// Choose ONE of these:
+module.exports = handler; // Recommended simplest version
