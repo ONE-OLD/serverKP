@@ -1,70 +1,67 @@
 const express = require('express');
-const path = require('path');
-const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser');
-const admin = require('firebase-admin');
 const serverless = require('serverless-http');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+const admin = require('firebase-admin');
 
+// Initialize Express app
 const app = express();
 const router = express.Router();
 
 // ======================
-// Middleware Configuration
+// Serverless Middleware
 // ======================
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(cors({
+  origin: true, // Reflect request origin
+  credentials: true // Required for cookies
+}));
+
+app.use(express.json()); // Built-in body parser (replaces body-parser)
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.urlencoded({ extended: true }));
 
 // ======================
-// Firebase Initialization
+// Firebase Admin Setup (Serverless-safe)
 // ======================
-if (!admin.apps.length) {
-  try {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '';
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey
-      })
-    });
-    console.log('Firebase initialized successfully');
-  } catch (error) {
-    console.error('Firebase init error:', error);
-  }
+if (admin.apps.length === 0) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    })
+  });
 }
 
 // ======================
-// Authentication Middleware
+// Authentication Middleware (Optimized for Serverless)
 // ======================
-async function checkAuth(req, res, next) {
+const verifySession = async (req, res, next) => {
   const sessionCookie = req.cookies.session || '';
-  if (!sessionCookie) return res.redirect('/');
+  
   try {
     await admin.auth().verifySessionCookie(sessionCookie, true);
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     next();
   } catch (error) {
     console.error('Auth error:', error);
-    res.redirect('/');
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-}
+};
 
 // ======================
-// Route Definitions
+// API Routes (Serverless-ready)
 // ======================
 
-// Home Route
-router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public', 'index.html'));
+// Health Check
+router.get('/.netlify/functions/api/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
 // Auth Endpoints
-router.post('/sessionLogin', async (req, res) => {
-  const idToken = req.body.idToken;
+router.post('/api/sessionLogin', async (req, res) => {
+  const { idToken } = req.body;
   const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-  
+
   try {
     const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
     
@@ -78,59 +75,33 @@ router.post('/sessionLogin', async (req, res) => {
     
     res.json({ status: 'success' });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(401).json({ error: 'UNAUTHORIZED' });
+    res.status(401).json({ error: 'Login failed' });
   }
 });
 
-router.get('/sessionLogout', (req, res) => {
-  res.clearCookie('session', {
-    path: '/',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
-  });
-  res.redirect('/');
-});
-
-// Protected Routes
-const protectedPages = [
-  'dashboard',
-  'apps',
-  'tutorials',
-  'html',
-  'css',
-  'javascript',
-  'python',
-  'cpp',
-  'mysql',
-  'profile',
-  'news',
-  'certificate',
-  'account'
-];
-
-protectedPages.forEach(page => {
-  router.get(`/${page}`, checkAuth, (req, res) => {
-    try {
-      res.sendFile(path.join(__dirname, '../private-views', `${page}.html`));
-    } catch (error) {
-      console.error(`Error loading ${page}:`, error);
-      res.status(404).send('Page not found');
-    }
-  });
+// Protected API Example
+router.get('/api/protected-data', verifySession, (req, res) => {
+  res.json({ secretData: 'This is protected content' });
 });
 
 // ======================
 // Serverless Configuration
 // ======================
-app.use('/api', router);  // Primary Vercel endpoint
-app.use('/', router);     // Fallback for direct access
+app.use('/.netlify/functions/api', router); // Netlify compatibility
+app.use('/api', router); // Vercel primary endpoint
+app.use('/', router); // Fallback
 
+// Error handling (Serverless-optimized)
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Export the serverless-wrapped app
 module.exports.handler = serverless(app, {
   binary: [
     'image/*',
-    'application/javascript',
-    'application/json',
-    'text/css'
+    'font/*',
+    'application/*'
   ]
 });
