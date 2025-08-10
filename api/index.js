@@ -68,7 +68,7 @@ router.get('/_health', (req, res) => {
 
 // Public routes
 router.get('/', (req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
+  res.sendFile(path.join('/public', 'index.html'));
 });
 
 // Auth endpoints
