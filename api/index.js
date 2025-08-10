@@ -4,21 +4,26 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const path = require('path');
+const fs = require('fs');
 
-// Debugging - Verify environment variables
-console.log('Checking Firebase env vars:', {
-  hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
-  hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
-  hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY?.length > 0
-});
+// Debug startup
+console.log("Starting server...");
+console.log("Current directory:", __dirname);
+console.log("Public dir exists:", fs.existsSync(path.join(__dirname, '../public')));
+console.log("Private-views exists:", fs.existsSync(path.join(__dirname, '../private-views')));
 
 // Initialize Express
 const app = express();
 const router = express.Router();
 
 // ======================
-// Middleware
+// Enhanced Middleware
 // ======================
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 app.use(cors({
   origin: true,
   credentials: true
@@ -26,124 +31,110 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use('/static', express.static(path.join(__dirname, '../public')));
 
-// ======================
-// Firebase Initialization (Serverless-safe)
-// ======================
-if (admin.apps.length === 0) {
-  try {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    
-    if (!privateKey || !process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL) {
-      throw new Error('Missing Firebase environment variables');
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey
-      })
-    });
-    console.log('Firebase initialized successfully');
-  } catch (error) {
-    console.error('FATAL: Firebase init failed:', error);
-    process.exit(1); // Crash immediately if Firebase fails
+// Static files with fallback
+const staticDir = path.join(__dirname, '../public');
+app.use('/static', express.static(staticDir, {
+  fallthrough: false,
+  setHeaders: (res) => {
+    console.log('Serving static file');
+    res.set('X-Static', 'true');
   }
-}
+}));
 
 // ======================
-// Authentication Middleware
+// Firebase Init (with retries)
 // ======================
-const verifySession = async (req, res, next) => {
-  const sessionCookie = req.cookies.session || '';
+let firebaseInitialized = false;
+const initializeFirebase = () => {
+  if (admin.apps.length === 0) {
+    try {
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+      if (!privateKey) throw new Error('Missing private key');
+
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: privateKey
+        })
+      });
+      firebaseInitialized = true;
+      console.log('🔥 Firebase initialized successfully');
+    } catch (error) {
+      console.error('Firebase init error:', error);
+      setTimeout(initializeFirebase, 2000); // Retry after 2 seconds
+    }
+  }
+};
+initializeFirebase();
+
+// ======================
+// Routes with Debugging
+// ======================
+
+// Debug endpoint
+router.get('/debug', (req, res) => {
+  res.json({
+    status: 'online',
+    firebase: firebaseInitialized,
+    paths: {
+      public: staticDir,
+      privateViews: path.join(__dirname, '../private-views')
+    }
+  });
+});
+
+// Enhanced file serving
+const serveFile = (filePath) => (req, res) => {
+  const absolutePath = path.join(__dirname, filePath);
+  console.log('Attempting to serve:', absolutePath);
   
-  try {
-    await admin.auth().verifySessionCookie(sessionCookie, true);
-    next();
-  } catch (error) {
-    console.error('Auth verification failed:', error);
-    res.status(401).json({ error: 'Unauthorized' });
+  if (fs.existsSync(absolutePath)) {
+    res.sendFile(absolutePath, (err) => {
+      if (err) {
+        console.error('File send error:', err);
+        res.status(500).send('File error');
+      }
+    });
+  } else {
+    console.error('File not found:', absolutePath);
+    res.status(404).send('Not found');
   }
 };
 
-// ======================
-// Route Definitions
-// ======================
+// Public routes
+router.get('/', serveFile('../public/index.html'));
 
-// Health Check (for debugging)
-router.get('/health', (req, res) => {
-  res.json({ status: 'ok', firebase: admin.apps.length > 0 });
-});
-
-// Public Routes
-router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public', 'index.html'));
-});
-
-// Auth Endpoints
-router.post('/sessionLogin', async (req, res) => {
-  const { idToken } = req.body;
-  const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-
-  try {
-    const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
-    
-    res.cookie('session', sessionCookie, {
-      maxAge: expiresIn,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
-    
-    res.json({ status: 'success' });
-  } catch (error) {
-    console.error('Login failed:', error);
-    res.status(401).json({ error: 'Authentication failed' });
-  }
-});
-
-router.get('/sessionLogout', (req, res) => {
-  res.clearCookie('session', {
-    path: '/',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
-  });
-  res.redirect('/');
-});
-
-// Protected Routes
-const protectedPages = [
-  'dashboard', 'apps', 'tutorials', 'html', 'css',
-  'javascript', 'python', 'cpp', 'mysql', 'profile',
-  'news', 'certificate', 'account'
-];
-
+// Protected routes
+const protectedPages = ['dashboard', 'profile', /* ... */];
 protectedPages.forEach(page => {
-  router.get(`/${page}`, verifySession, (req, res) => {
-    try {
-      res.sendFile(path.join(__dirname, '../private-views', `${page}.html`));
-    } catch (error) {
-      console.error(`Failed to load ${page}:`, error);
-      res.status(404).json({ error: 'Page not found' });
-    }
-  });
+  router.get(`/${page}`, (req, res, next) => {
+    console.log(`Accessing protected route: /${page}`);
+    if (!firebaseInitialized) return res.status(503).send('Service unavailable');
+    next();
+  }, verifySession, serveFile(`../private-views/${page}.html`));
 });
 
 // ======================
-// Serverless Configuration
+// Error Handling
 // ======================
-app.use('/api', router); // Primary endpoint
-app.use('/', router);    // Fallback
-
-// Error Handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+  res.status(500).send('Server error');
 });
 
-// Vercel-required export
-const handler = serverless(app);
-module.exports = handler; // Critical: Default export
+// ======================
+// Serverless Export
+// ======================
+const handler = serverless(app, {
+  binary: ['image/*', 'application/*', 'font/*']
+});
+
+// Warmup ping
+console.log('Server initialized. Testing handler...');
+handler({ path: '/debug', httpMethod: 'GET' }, {})
+  .then(response => console.log('Handler test response:', response))
+  .catch(err => console.error('Handler test failed:', err));
+
+module.exports.handler = handler;
