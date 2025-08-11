@@ -5,13 +5,11 @@ import fs from "fs";
 import serverless from "serverless-http";
 
 const app = express();
-
 const __dirname = path.resolve();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Session middleware with cookie settings for serverless env
 app.use(
   session({
     secret: "supersecretkey123",
@@ -25,10 +23,10 @@ app.use(
   })
 );
 
-// In-memory user DB (username => { password })
+// In-memory users DB
 const users = {};
 
-// Middleware to protect pages
+// Middleware to require login
 function requireLogin(req, res, next) {
   if (!req.session.user) {
     return res.redirect("/");
@@ -36,7 +34,7 @@ function requireLogin(req, res, next) {
   next();
 }
 
-// Simple template injector: inject username in sidebar placeholder
+// Inject sidebar with username
 function renderPage(filePath, username) {
   let html = fs.readFileSync(filePath, "utf-8");
   const sidebar = `<div class="sidebar">Logged in as: <strong>${username}</strong></div>`;
@@ -44,12 +42,12 @@ function renderPage(filePath, username) {
   return html;
 }
 
-// Serve index.html (login/signup/forget)
+// Index page (login/signup/forget)
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "views", "index.html"));
 });
 
-// Login POST
+// Login handler
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -63,7 +61,7 @@ app.post("/login", (req, res) => {
   res.redirect("/page1");
 });
 
-// Signup POST
+// Signup handler
 app.post("/signup", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -77,14 +75,14 @@ app.post("/signup", (req, res) => {
   res.redirect("/page1");
 });
 
-// Logout
+// Logout handler
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
     res.redirect("/");
   });
 });
 
-// Password forget - dummy response
+// Forget password dummy handler
 app.post("/forget", (req, res) => {
   res.send("If this was real, you'd get an email to reset your password.");
 });
@@ -101,7 +99,7 @@ for (let i = 1; i <= 13; i++) {
   });
 }
 
-// Serve static files if needed
+// Static files (if needed)
 app.use("/static", express.static(path.join(__dirname, "..", "static")));
 
 export const handler = serverless(app);
