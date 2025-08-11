@@ -1,8 +1,0 @@
-{
-  "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/(dashboard|apps|tutorials|html|css|javascript|python|cpp|mysql|profile|news|certificate|account)", "destination": "/api/index.js" },
-    { "source": "/(.*)", "destination": "/public/$1" }
-  ]
-}
