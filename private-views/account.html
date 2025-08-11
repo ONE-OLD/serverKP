@@ -3,22 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Page</title>
-    <link rel="stylesheet" href="/styles.css">
+    <title>Account Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
+        .container { max-width: 600px; margin: 50px auto; background: white; padding: 20px; border-radius: 10px; }
+        h1 { text-align: center; }
+        .section { margin-bottom: 25px; }
+        label { display: block; margin-top: 10px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { padding: 10px; margin-top: 10px; width: 100%; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #a71d2a; }
+        .activity-log { background: #f8f9fa; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Account Page</h1>
-    </header>
-    <main>
-        <section>
-            <h2>Your Account Details</h2>
-            <p>Welcome to your account page. Here you can manage your account settings and preferences.</p>
-            <!-- Additional account management features can be added here -->
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2023 Your Website Name. All rights reserved.</p>
-    </footer>
+    <div class="container">
+        <h1>Account Management</h1>
+
+        <!-- Profile Info -->
+        <div class="section">
+            <h2>Profile</h2>
+            <p><strong>Email:</strong> <span id="userEmail">Loading...</span></p>
+        </div>
+
+        <!-- Change Password -->
+        <div class="section">
+            <h2>Change Password</h2>
+            <label for="currentPassword">Current Password</label>
+            <input type="password" id="currentPassword" placeholder="Enter current password">
+            <label for="newPassword">New Password</label>
+            <input type="password" id="newPassword" placeholder="Enter new password">
+            <button onclick="changePassword()">Change Password</button>
+        </div>
+
+        <!-- Activity History -->
+        <div class="section">
+            <h2>Activity History</h2>
+            <div id="activityLog" class="activity-log">Loading...</div>
+        </div>
+
+        <!-- Logout -->
+        <div class="section">
+            <button onclick="logout()">Log Out</button>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="section">
+            <h2>Danger Zone</h2>
+            <button class="danger" onclick="disableAccount()">Disable Account</button>
+            <button class="danger" onclick="deleteAccount()">Delete Account</button>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Init Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Show User Info
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById("userEmail").textContent = user.email;
+                loadActivityHistory();
+            } else {
+                window.location.href = "index.html"; // Redirect to login
+            }
+        });
+
+        // Change Password
+        async function changePassword() {
+            const currentPassword = document.getElementById("currentPassword").value;
+            const newPassword = document.getElementById("newPassword").value;
+
+            if (!currentPassword || !newPassword) {
+                alert("Please fill in all fields");
+                return;
+            }
+
+            const user = auth.currentUser;
+            const cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+
+            try {
+                await user.reauthenticateWithCredential(cred);
+                await user.updatePassword(newPassword);
+                alert("Password updated successfully");
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
+        }
+
+        // Logout
+        function logout() {
+            auth.signOut().then(() => {
+                window.location.href = "index.html";
+            });
+        }
+
+        // Load Activity History (Mock Example)
+        function loadActivityHistory() {
+            const logElement = document.getElementById("activityLog");
+            // You should replace this with actual DB call
+            logElement.innerHTML = `
+                <p>2025-08-01: Logged in</p>
+                <p>2025-08-05: Changed password</p>
+                <p>2025-08-10: Logged in</p>
+            `;
+        }
+
+        // Disable Account (mock)
+        function disableAccount() {
+            alert("This would disable the account. (Backend needed)");
+        }
+
+        // Delete Account
+        async function deleteAccount() {
+            if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
+                try {
+                    await auth.currentUser.delete();
+                    alert("Account deleted");
+                    window.location.href = "index.html";
+                } catch (error) {
+                    alert("Error: " + error.message);
+                }
+            }
+        }
+    </script>
 </body>
 </html>
