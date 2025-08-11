@@ -1,132 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auth Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f2f2f2;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            width: 300px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        form {
-            display: none;
-            flex-direction: column;
-        }
-        form.active {
-            display: flex;
-        }
-        input {
-            margin-bottom: 10px;
-            padding: 10px;
-            font-size: 14px;
-        }
-        button {
-            padding: 10px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .switch {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        .switch a {
-            color: #007BFF;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Auth — Login / Sign up / Reset</title>
+  <style>
+    body {
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      width: 360px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(16,24,40,0.08);
+      padding: 24px;
+    }
+    h2 { margin: 0 0 12px 0; text-align:center; }
+    .field { margin-bottom:12px; }
+    input {
+      width:100%; padding:10px 12px; font-size:14px; border-radius:8px;
+      border:1px solid #e6e9ef; outline:none;
+    }
+    button {
+      width:100%; padding:10px 12px; border-radius:8px; border:0;
+      background:#0ea5a4; color:white; font-weight:600; cursor:pointer;
+    }
+    button[disabled]{ opacity:0.6; cursor:not-allowed; }
+    .links { text-align:center; margin-top:10px; font-size:13px; color:#374151; }
+    .links a { color:#0ea5a4; cursor:pointer; text-decoration:none; }
+    .hidden { display:none; }
+    .msg { font-size:13px; color:#dc2626; text-align:center; margin-top:10px; }
+    .success { color:#059669; }
+  </style>
 </head>
 <body>
-
-<div class="container">
-    <!-- Login Form -->
+  <div class="card">
+    <!-- Login -->
     <form id="loginForm" class="active">
-        <h2>Login</h2>
-        <input type="email" id="loginEmail" placeholder="Email" required>
-        <input type="password" id="loginPassword" placeholder="Password" required>
-        <button type="submit">Login</button>
-        <div class="switch">
-            No account? <a id="toSignup">Sign Up</a><br>
-            Forgot password? <a id="toForgot">Reset</a>
-        </div>
+      <h2>Login</h2>
+      <div class="field"><input id="loginEmail" type="email" placeholder="Email" required /></div>
+      <div class="field"><input id="loginPassword" type="password" placeholder="Password" required /></div>
+      <button id="loginBtn" type="submit">Login</button>
+      <div class="links">
+        <div>No account? <a id="showSignup">Sign up</a></div>
+        <div style="margin-top:6px;"><a id="showForgot">Forgot password?</a></div>
+      </div>
+      <div id="loginMsg" class="msg"></div>
     </form>
 
-    <!-- Signup Form -->
-    <form id="signupForm">
-        <h2>Sign Up</h2>
-        <input type="email" id="signupEmail" placeholder="Email" required>
-        <input type="password" id="signupPassword" placeholder="Password" required>
-        <button type="submit">Sign Up</button>
-        <div class="switch">
-            Already have an account? <a id="toLoginFromSignup">Login</a>
-        </div>
+    <!-- Signup -->
+    <form id="signupForm" class="hidden">
+      <h2>Create account</h2>
+      <div class="field"><input id="signupEmail" type="email" placeholder="Email" required /></div>
+      <div class="field"><input id="signupPassword" type="password" placeholder="Password (6+ chars)" required /></div>
+      <button id="signupBtn" type="submit">Sign up</button>
+      <div class="links">
+        <div>Already have an account? <a id="showLoginFromSignup">Login</a></div>
+      </div>
+      <div id="signupMsg" class="msg"></div>
     </form>
 
-    <!-- Forgot Password Form -->
-    <form id="forgotForm">
-        <h2>Reset Password</h2>
-        <input type="email" id="forgotEmail" placeholder="Email" required>
-        <button type="submit">Send Reset Email</button>
-        <div class="switch">
-            Remembered? <a id="toLoginFromForgot">Login</a>
-        </div>
+    <!-- Forgot -->
+    <form id="forgotForm" class="hidden">
+      <h2>Reset password</h2>
+      <div class="field"><input id="forgotEmail" type="email" placeholder="Email" required /></div>
+      <button id="forgotBtn" type="submit">Send reset email</button>
+      <div class="links">
+        <div>Remembered? <a id="showLoginFromForgot">Login</a></div>
+      </div>
+      <div id="forgotMsg" class="msg"></div>
     </form>
-</div>
+  </div>
 
-<script>
-    const loginForm = document.getElementById('loginForm');
-    const signupForm = document.getElementById('signupForm');
-    const forgotForm = document.getElementById('forgotForm');
+  <!-- Firebase compat SDK (keeps simple firebase.auth() API) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-    document.getElementById('toSignup').onclick = () => switchForm(signupForm);
-    document.getElementById('toForgot').onclick = () => switchForm(forgotForm);
-    document.getElementById('toLoginFromSignup').onclick = () => switchForm(loginForm);
-    document.getElementById('toLoginFromForgot').onclick = () => switchForm(loginForm);
+  <script>
+    // ---------- CONFIGURE FIREBASE ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-gCHlAYiX3zJiAeSSSNbQ1qhXJMHLeSQ",
+      authDomain: "katprogrammers-1e30e.firebaseapp.com",   // e.g. your-project.firebaseapp.com
+      projectId: "katprogrammers-1e30e",
+      // other fields if you want
+    };
 
-    function switchForm(form) {
-        loginForm.classList.remove('active');
-        signupForm.classList.remove('active');
-        forgotForm.classList.remove('active');
-        form.classList.add('active');
+    // Initialize Firebase app and auth (must happen before using auth)
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth(); // using compat so api is simple
+
+    // ---------- UI helpers ----------
+    const $ = id => document.getElementById(id);
+    const loginForm = $('loginForm');
+    const signupForm = $('signupForm');
+    const forgotForm = $('forgotForm');
+    const loginMsg = $('loginMsg');
+    const signupMsg = $('signupMsg');
+    const forgotMsg = $('forgotMsg');
+
+    function show(formEl) {
+      [loginForm, signupForm, forgotForm].forEach(f => f.classList.add('hidden'));
+      formEl.classList.remove('hidden');
+      loginMsg.textContent = signupMsg.textContent = forgotMsg.textContent = '';
     }
 
-    // You can attach Firebase functions here
-    loginForm.onsubmit = e => {
-        e.preventDefault();
-        console.log("Login:", loginEmail.value, loginPassword.value);
-        // TODO: Firebase login
-    };
+    document.getElementById('showSignup').addEventListener('click', () => show(signupForm));
+    document.getElementById('showForgot').addEventListener('click', () => show(forgotForm));
+    document.getElementById('showLoginFromSignup').addEventListener('click', () => show(loginForm));
+    document.getElementById('showLoginFromForgot').addEventListener('click', () => show(loginForm));
+    document.getElementById('showLoginFromSignup').addEventListener('click', () => show(loginForm));
+    document.getElementById('showLoginFromForgot').addEventListener('click', () => show(loginForm));
 
-    signupForm.onsubmit = e => {
-        e.preventDefault();
-        console.log("Sign Up:", signupEmail.value, signupPassword.value);
-        // TODO: Firebase signup
-    };
+    // ---------- Login ----------
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginMsg.textContent = '';
+      const btn = $('loginBtn');
+      btn.disabled = true;
+      try {
+        const email = $('loginEmail').value.trim();
+        const password = $('loginPassword').value;
+        // sign in with firebase
+        const userCred = await auth.signInWithEmailAndPassword(email, password);
+        // get ID token
+        const idToken = await userCred.user.getIdToken();
+        // send to backend to create session cookie
+        const resp = await fetch('/api/sessionLogin', {
+          method: 'POST',
+          credentials: 'same-origin', // IMPORTANT so browser stores Set-Cookie
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          throw new Error(body.error || 'Server login failed');
+        }
+        // success -> redirect to dashboard
+        window.location.href = '/dashboard';
+      } catch (err) {
+        console.error('Login error:', err);
+        loginMsg.textContent = err.message || 'Login failed';
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
-    forgotForm.onsubmit = e => {
-        e.preventDefault();
-        console.log("Reset Email:", forgotEmail.value);
-        // TODO: Firebase reset password
-    };
-</script>
+    // ---------- Sign Up ----------
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      signupMsg.textContent = '';
+      const btn = $('signupBtn');
+      btn.disabled = true;
+      try {
+        const email = $('signupEmail').value.trim();
+        const password = $('signupPassword').value;
+        if (password.length < 6) throw new Error('Password must be 6+ characters');
+        await auth.createUserWithEmailAndPassword(email, password);
+        signupMsg.textContent = 'Account created — please log in.';
+        signupMsg.classList.remove('msg'); // keep it simple
+        show(loginForm);
+      } catch (err) {
+        console.error('Signup error:', err);
+        signupMsg.textContent = err.message || 'Sign up failed';
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
+    // ---------- Forgot Password ----------
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      forgotMsg.textContent = '';
+      const btn = $('forgotBtn');
+      btn.disabled = true;
+      try {
+        const email = $('forgotEmail').value.trim();
+        await auth.sendPasswordResetEmail(email);
+        forgotMsg.textContent = 'Reset email sent. Check your inbox.';
+        forgotMsg.classList.add('success');
+      } catch (err) {
+        console.error('Reset error:', err);
+        forgotMsg.textContent = err.message || 'Failed to send reset email';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Optional: if user is already signed in client-side, you could redirect automatically.
+    // But since we use server sessions, the server-side cookie is primary.
+    // Uncomment if you'd like an immediate client redirect when firebase local state shows signed-in:
+    /*
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        // optionally request idToken -> server session and redirect
+      }
+    });
+    */
+  </script>
 </body>
 </html>
