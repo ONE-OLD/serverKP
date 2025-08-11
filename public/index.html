@@ -1,207 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Auth — Login / Sign up / Reset</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login / Signup</title>
   <style>
-    body {
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: #f3f4f6;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .card {
-      width: 360px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(16,24,40,0.08);
-      padding: 24px;
-    }
-    h2 { margin: 0 0 12px 0; text-align:center; }
-    .field { margin-bottom:12px; }
-    input {
-      width:100%; padding:10px 12px; font-size:14px; border-radius:8px;
-      border:1px solid #e6e9ef; outline:none;
-    }
-    button {
-      width:100%; padding:10px 12px; border-radius:8px; border:0;
-      background:#0ea5a4; color:white; font-weight:600; cursor:pointer;
-    }
-    button[disabled]{ opacity:0.6; cursor:not-allowed; }
-    .links { text-align:center; margin-top:10px; font-size:13px; color:#374151; }
-    .links a { color:#0ea5a4; cursor:pointer; text-decoration:none; }
-    .hidden { display:none; }
-    .msg { font-size:13px; color:#dc2626; text-align:center; margin-top:10px; }
-    .success { color:#059669; }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 30px; }
+    .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+    input, button { width: 100%; padding: 10px; margin: 8px 0; }
+    button { cursor: pointer; }
+    .hidden { display: none; }
+    .error { color: red; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <!-- Login -->
-    <form id="loginForm" class="active">
-      <h2>Login</h2>
-      <div class="field"><input id="loginEmail" type="email" placeholder="Email" required /></div>
-      <div class="field"><input id="loginPassword" type="password" placeholder="Password" required /></div>
-      <button id="loginBtn" type="submit">Login</button>
-      <div class="links">
-        <div>No account? <a id="showSignup">Sign up</a></div>
-        <div style="margin-top:6px;"><a id="showForgot">Forgot password?</a></div>
-      </div>
-      <div id="loginMsg" class="msg"></div>
-    </form>
+  <div class="container">
+    <h2>Login</h2>
+    <input id="email" type="email" placeholder="Email" required />
+    <input id="password" type="password" placeholder="Password" required />
+    <button id="loginBtn">Login</button>
+    <button id="showSignupBtn">Create account</button>
+    <button id="showForgotBtn">Forgot password?</button>
 
-    <!-- Signup -->
-    <form id="signupForm" class="hidden">
-      <h2>Create account</h2>
-      <div class="field"><input id="signupEmail" type="email" placeholder="Email" required /></div>
-      <div class="field"><input id="signupPassword" type="password" placeholder="Password (6+ chars)" required /></div>
-      <button id="signupBtn" type="submit">Sign up</button>
-      <div class="links">
-        <div>Already have an account? <a id="showLoginFromSignup">Login</a></div>
-      </div>
-      <div id="signupMsg" class="msg"></div>
-    </form>
+    <div id="signupForm" class="hidden">
+      <h2>Sign Up</h2>
+      <input id="signupEmail" type="email" placeholder="Email" required />
+      <input id="signupPassword" type="password" placeholder="Password (6+ chars)" required />
+      <button id="signupBtn">Sign Up</button>
+      <button id="backToLoginBtn">Back to Login</button>
+    </div>
 
-    <!-- Forgot -->
-    <form id="forgotForm" class="hidden">
-      <h2>Reset password</h2>
-      <div class="field"><input id="forgotEmail" type="email" placeholder="Email" required /></div>
-      <button id="forgotBtn" type="submit">Send reset email</button>
-      <div class="links">
-        <div>Remembered? <a id="showLoginFromForgot">Login</a></div>
-      </div>
-      <div id="forgotMsg" class="msg"></div>
-    </form>
+    <div id="forgotForm" class="hidden">
+      <h2>Reset Password</h2>
+      <input id="forgotEmail" type="email" placeholder="Email" required />
+      <button id="resetBtn">Send Reset Email</button>
+      <button id="backToLoginBtn2">Back to Login</button>
+    </div>
+
+    <div id="message" class="error"></div>
   </div>
 
-  <!-- Firebase compat SDK (keeps simple firebase.auth() API) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
   <script>
-    // ---------- CONFIGURE FIREBASE ----------
     const firebaseConfig = {
-      apiKey: "AIzaSyD-gCHlAYiX3zJiAeSSSNbQ1qhXJMHLeSQ",
-      authDomain: "katprogrammers-1e30e.firebaseapp.com",   // e.g. your-project.firebaseapp.com
-      projectId: "katprogrammers-1e30e",
-      // other fields if you want
-    };
+apiKey: "AIzaSyD-gCHlAYiX3zJiAeSSSNbQ1qhXJMHLeSQ",
+authDomain: "katprogrammers-1e30e.firebaseapp.com", // e.g. your-project.firebaseapp.com
+projectId: "katprogrammers-1e30e",
+// other fields if you want
+};
 
-    // Initialize Firebase app and auth (must happen before using auth)
-    const app = firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth(); // using compat so api is simple
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-    // ---------- UI helpers ----------
-    const $ = id => document.getElementById(id);
-    const loginForm = $('loginForm');
-    const signupForm = $('signupForm');
-    const forgotForm = $('forgotForm');
-    const loginMsg = $('loginMsg');
-    const signupMsg = $('signupMsg');
-    const forgotMsg = $('forgotMsg');
+    // Elements
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const showSignupBtn = document.getElementById('showSignupBtn');
+    const showForgotBtn = document.getElementById('showForgotBtn');
+    const messageEl = document.getElementById('message');
 
-    function show(formEl) {
-      [loginForm, signupForm, forgotForm].forEach(f => f.classList.add('hidden'));
-      formEl.classList.remove('hidden');
-      loginMsg.textContent = signupMsg.textContent = forgotMsg.textContent = '';
+    const signupForm = document.getElementById('signupForm');
+    const signupEmail = document.getElementById('signupEmail');
+    const signupPassword = document.getElementById('signupPassword');
+    const signupBtn = document.getElementById('signupBtn');
+    const backToLoginBtn = document.getElementById('backToLoginBtn');
+
+    const forgotForm = document.getElementById('forgotForm');
+    const forgotEmail = document.getElementById('forgotEmail');
+    const resetBtn = document.getElementById('resetBtn');
+    const backToLoginBtn2 = document.getElementById('backToLoginBtn2');
+
+    function showMessage(msg, isError = true) {
+      messageEl.textContent = msg;
+      messageEl.style.color = isError ? 'red' : 'green';
+      if (!msg) messageEl.style.color = '';
     }
 
-    document.getElementById('showSignup').addEventListener('click', () => show(signupForm));
-    document.getElementById('showForgot').addEventListener('click', () => show(forgotForm));
-    document.getElementById('showLoginFromSignup').addEventListener('click', () => show(loginForm));
-    document.getElementById('showLoginFromForgot').addEventListener('click', () => show(loginForm));
-    document.getElementById('showLoginFromSignup').addEventListener('click', () => show(loginForm));
-    document.getElementById('showLoginFromForgot').addEventListener('click', () => show(loginForm));
+    // Show / hide forms
+    showSignupBtn.onclick = () => {
+      signupForm.classList.remove('hidden');
+      forgotForm.classList.add('hidden');
+      emailInput.parentElement.classList.add('hidden');
+      passwordInput.parentElement.classList.add('hidden');
+      loginBtn.classList.add('hidden');
+      showSignupBtn.classList.add('hidden');
+      showForgotBtn.classList.add('hidden');
+      showMessage('');
+    };
 
-    // ---------- Login ----------
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      loginMsg.textContent = '';
-      const btn = $('loginBtn');
-      btn.disabled = true;
+    backToLoginBtn.onclick = backToLoginBtn2.onclick = () => {
+      signupForm.classList.add('hidden');
+      forgotForm.classList.add('hidden');
+      emailInput.parentElement.classList.remove('hidden');
+      passwordInput.parentElement.classList.remove('hidden');
+      loginBtn.classList.remove('hidden');
+      showSignupBtn.classList.remove('hidden');
+      showForgotBtn.classList.remove('hidden');
+      showMessage('');
+    };
+
+    showForgotBtn.onclick = () => {
+      forgotForm.classList.remove('hidden');
+      signupForm.classList.add('hidden');
+      emailInput.parentElement.classList.add('hidden');
+      passwordInput.parentElement.classList.add('hidden');
+      loginBtn.classList.add('hidden');
+      showSignupBtn.classList.add('hidden');
+      showForgotBtn.classList.add('hidden');
+      showMessage('');
+    };
+
+    // Login
+    loginBtn.onclick = async () => {
+      showMessage('');
       try {
-        const email = $('loginEmail').value.trim();
-        const password = $('loginPassword').value;
-        // sign in with firebase
-        const userCred = await auth.signInWithEmailAndPassword(email, password);
-        // get ID token
-        const idToken = await userCred.user.getIdToken();
-        // send to backend to create session cookie
-        const resp = await fetch('/api/sessionLogin', {
+        const userCredential = await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
+        const user = userCredential.user;
+        const idToken = await user.getIdToken(true);
+
+        const res = await fetch('/api/sessionLogin', {
           method: 'POST',
-          credentials: 'same-origin', // IMPORTANT so browser stores Set-Cookie
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken })
+          credentials: 'include',
+          body: JSON.stringify({ idToken }),
         });
-        if (!resp.ok) {
-          const body = await resp.json().catch(() => ({}));
-          throw new Error(body.error || 'Server login failed');
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Login failed');
         }
-        // success -> redirect to dashboard
+
+        // Redirect to dashboard after login
         window.location.href = '/dashboard';
-      } catch (err) {
-        console.error('Login error:', err);
-        loginMsg.textContent = err.message || 'Login failed';
-      } finally {
-        btn.disabled = false;
+      } catch (error) {
+        showMessage(error.message);
       }
-    });
+    };
 
-    // ---------- Sign Up ----------
-    signupForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      signupMsg.textContent = '';
-      const btn = $('signupBtn');
-      btn.disabled = true;
+    // Signup
+    signupBtn.onclick = async () => {
+      showMessage('');
       try {
-        const email = $('signupEmail').value.trim();
-        const password = $('signupPassword').value;
-        if (password.length < 6) throw new Error('Password must be 6+ characters');
-        await auth.createUserWithEmailAndPassword(email, password);
-        signupMsg.textContent = 'Account created — please log in.';
-        signupMsg.classList.remove('msg'); // keep it simple
-        show(loginForm);
-      } catch (err) {
-        console.error('Signup error:', err);
-        signupMsg.textContent = err.message || 'Sign up failed';
-      } finally {
-        btn.disabled = false;
+        if (signupPassword.value.length < 6) throw new Error('Password must be at least 6 characters');
+        await auth.createUserWithEmailAndPassword(signupEmail.value, signupPassword.value);
+        showMessage('Account created! Please login.', false);
+      } catch (error) {
+        showMessage(error.message);
       }
-    });
+    };
 
-    // ---------- Forgot Password ----------
-    forgotForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      forgotMsg.textContent = '';
-      const btn = $('forgotBtn');
-      btn.disabled = true;
+    // Reset Password
+    resetBtn.onclick = async () => {
+      showMessage('');
       try {
-        const email = $('forgotEmail').value.trim();
-        await auth.sendPasswordResetEmail(email);
-        forgotMsg.textContent = 'Reset email sent. Check your inbox.';
-        forgotMsg.classList.add('success');
-      } catch (err) {
-        console.error('Reset error:', err);
-        forgotMsg.textContent = err.message || 'Failed to send reset email';
-      } finally {
-        btn.disabled = false;
+        await auth.sendPasswordResetEmail(forgotEmail.value);
+        showMessage('Reset email sent!', false);
+      } catch (error) {
+        showMessage(error.message);
       }
-    });
+    };
 
-    // Optional: if user is already signed in client-side, you could redirect automatically.
-    // But since we use server sessions, the server-side cookie is primary.
-    // Uncomment if you'd like an immediate client redirect when firebase local state shows signed-in:
-    /*
+    // Auto redirect if already logged in
     auth.onAuthStateChanged(user => {
       if (user) {
-        // optionally request idToken -> server session and redirect
+        window.location.href = '/dashboard';
       }
     });
-    */
   </script>
 </body>
 </html>
