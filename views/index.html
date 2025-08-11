@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login / Signup / Forget Password</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: auto;}
+    h2 { text-align: center; }
+    form { border: 1px solid #ccc; padding: 20px; margin-top: 10px; }
+    label, input { display: block; width: 100%; margin-bottom: 10px; }
+    input[type="submit"] { width: auto; }
+    .tab { cursor: pointer; padding: 10px; display: inline-block; border: 1px solid #ccc; margin-right: 5px; }
+    .tab.active { background: #007bff; color: white; }
+  </style>
+</head>
+<body>
+  <h2>Welcome</h2>
+  <div>
+    <div id="tab-login" class="tab active">Login</div>
+    <div id="tab-signup" class="tab">Signup</div>
+    <div id="tab-forget" class="tab">Forget Password</div>
+  </div>
+
+  <form id="login-form" method="POST" action="/login">
+    <label>Username:</label>
+    <input type="text" name="username" required />
+    <label>Password:</label>
+    <input type="password" name="password" required />
+    <input type="submit" value="Login" />
+  </form>
+
+  <form id="signup-form" method="POST" action="/signup" style="display:none;">
+    <label>Username:</label>
+    <input type="text" name="username" required />
+    <label>Password:</label>
+    <input type="password" name="password" required />
+    <input type="submit" value="Signup" />
+  </form>
+
+  <form id="forget-form" method="POST" action="/forget" style="display:none;">
+    <label>Username:</label>
+    <input type="text" name="username" required />
+    <input type="submit" value="Reset Password" />
+  </form>
+
+  <script>
+    const loginTab = document.getElementById("tab-login");
+    const signupTab = document.getElementById("tab-signup");
+    const forgetTab = document.getElementById("tab-forget");
+
+    const loginForm = document.getElementById("login-form");
+    const signupForm = document.getElementById("signup-form");
+    const forgetForm = document.getElementById("forget-form");
+
+    function setActiveTab(tab) {
+      loginTab.classList.remove("active");
+      signupTab.classList.remove("active");
+      forgetTab.classList.remove("active");
+      loginForm.style.display = "none";
+      signupForm.style.display = "none";
+      forgetForm.style.display = "none";
+
+      tab.classList.add("active");
+      if (tab === loginTab) loginForm.style.display = "block";
+      else if (tab === signupTab) signupForm.style.display = "block";
+      else if (tab === forgetTab) forgetForm.style.display = "block";
+    }
+
+    loginTab.onclick = () => setActiveTab(loginTab);
+    signupTab.onclick = () => setActiveTab(signupTab);
+    forgetTab.onclick = () => setActiveTab(forgetTab);
+  </script>
+</body>
+</html>
