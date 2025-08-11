@@ -15,8 +15,8 @@ const app = express();
 // Configuration
 // ======================
 const __dirnamePath = path.resolve();
-const publicDir = path.join(__dirnamePath, '/public');
-const privateViewsDir = path.join(__dirnamePath, '/private-views');
+const publicDir = path.join(__dirnamePath, 'public');
+const privateViewsDir = path.join(__dirnamePath, 'private-views');
 
 // Verify directories exist
 if (!fs.existsSync(publicDir) || !fs.existsSync(privateViewsDir)) {
@@ -80,6 +80,16 @@ const checkAuth = async (req, res, next) => {
 };
 
 // ======================
+// Debug route for cookies
+// ======================
+app.get('/api/debug-cookie', (req, res) => {
+  res.json({
+    cookies: req.cookies || {},
+    rawHeaders: req.rawHeaders
+  });
+});
+
+// ======================
 // Routes
 // ======================
 
@@ -99,7 +109,7 @@ app.post('/api/sessionLogin', async (req, res) => {
       maxAge: 60 * 60 * 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // important fix
       path: '/'
     });
     
@@ -122,7 +132,6 @@ protectedRoutes.forEach(route => {
     res.sendFile(path.join(privateViewsDir, `${route}.html`));
   });
 });
-
 
 // Serve index.html for root
 app.get('/', (req, res) => {
