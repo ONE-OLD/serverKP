@@ -1,145 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Management</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
-        .container { max-width: 600px; margin: 50px auto; background: white; padding: 20px; border-radius: 10px; }
-        h1 { text-align: center; }
-        .section { margin-bottom: 25px; }
-        label { display: block; margin-top: 10px; }
-        input { width: 100%; padding: 8px; margin-top: 5px; }
-        button { padding: 10px; margin-top: 10px; width: 100%; background: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .danger { background: #dc3545; }
-        .danger:hover { background: #a71d2a; }
-        .activity-log { background: #f8f9fa; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account Management</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
+    .container {
+      max-width: 600px; margin: 50px auto; background: #fff;
+      padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc;
+    }
+    h1, h2 { text-align: center; }
+    .section { margin-bottom: 30px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input {
+      width: 100%; padding: 8px; margin-top: 5px;
+      box-sizing: border-box; border-radius: 5px; border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 15px; padding: 10px; width: 100%;
+      border: none; border-radius: 5px; font-weight: bold;
+      cursor: pointer; background: #007bff; color: white;
+    }
+    button:hover { background: #0056b3; }
+    button.danger {
+      background: #dc3545;
+    }
+    button.danger:hover {
+      background: #a71d2a;
+    }
+    #activityLog {
+      background: #fafafa; border: 1px solid #ddd;
+      max-height: 200px; overflow-y: auto;
+      padding: 10px; border-radius: 5px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    #msg {
+      margin-top: 10px;
+      font-weight: bold;
+      color: red;
+      text-align: center;
+    }
+    #msg.success {
+      color: green;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Account Management</h1>
+  <div class="container">
+    <h1>Account Management</h1>
 
-        <!-- Profile Info -->
-        <div class="section">
-            <h2>Profile</h2>
-            <p><strong>Email:</strong> <span id="userEmail">Loading...</span></p>
-        </div>
-
-        <!-- Change Password -->
-        <div class="section">
-            <h2>Change Password</h2>
-            <label for="currentPassword">Current Password</label>
-            <input type="password" id="currentPassword" placeholder="Enter current password">
-            <label for="newPassword">New Password</label>
-            <input type="password" id="newPassword" placeholder="Enter new password">
-            <button onclick="changePassword()">Change Password</button>
-        </div>
-
-        <!-- Activity History -->
-        <div class="section">
-            <h2>Activity History</h2>
-            <div id="activityLog" class="activity-log">Loading...</div>
-        </div>
-
-        <!-- Logout -->
-        <div class="section">
-            <button onclick="logout()">Log Out</button>
-        </div>
-
-        <!-- Danger Zone -->
-        <div class="section">
-            <h2>Danger Zone</h2>
-            <button class="danger" onclick="disableAccount()">Disable Account</button>
-            <button class="danger" onclick="deleteAccount()">Delete Account</button>
-        </div>
+    <div class="section" id="profileSection">
+      <h2>Profile Info</h2>
+      <p><strong>Email:</strong> <span id="userEmail">Loading...</span></p>
     </div>
 
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-    <script>
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-        };
+    <div class="section" id="changePasswordSection">
+      <h2>Change Password</h2>
+      <label for="currentPassword">Current Password</label>
+      <input type="password" id="currentPassword" placeholder="Current Password" />
+      <label for="newPassword">New Password</label>
+      <input type="password" id="newPassword" placeholder="New Password (6+ chars)" />
+      <button id="changePasswordBtn">Change Password</button>
+      <div id="msg"></div>
+    </div>
 
-        // Init Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+    <div class="section" id="activitySection">
+      <h2>Activity History</h2>
+      <div id="activityLog">Loading...</div>
+    </div>
 
-        // Show User Info
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                document.getElementById("userEmail").textContent = user.email;
-                loadActivityHistory();
-            } else {
-                window.location.href = "index.html"; // Redirect to login
-            }
+    <div class="section" id="logoutSection">
+      <button id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="section" id="dangerZoneSection">
+      <h2>Danger Zone</h2>
+      <button id="disableAccountBtn" class="danger">Disable Account (Not Implemented)</button>
+      <button id="deleteAccountBtn" class="danger">Delete Account</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (compat version for simplicity) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-gCHlAYiX3zJiAeSSSNbQ1qhXJMHLeSQ",
+      authDomain: "katprogrammers-1e30e.firebaseapp.com",
+      projectId: "katprogrammers-1e30e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const userEmailEl = document.getElementById('userEmail');
+    const currentPasswordEl = document.getElementById('currentPassword');
+    const newPasswordEl = document.getElementById('newPassword');
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const disableAccountBtn = document.getElementById('disableAccountBtn');
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    const activityLogEl = document.getElementById('activityLog');
+    const msgEl = document.getElementById('msg');
+
+    function showMessage(text, success = false) {
+      msgEl.textContent = text;
+      msgEl.className = success ? 'success' : '';
+      setTimeout(() => {
+        msgEl.textContent = '';
+        msgEl.className = '';
+      }, 5000);
+    }
+
+    // Redirect if not logged in
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = '/';
+        return;
+      }
+      userEmailEl.textContent = user.email;
+      loadActivityHistory();
+    });
+
+    // Load activity history from backend
+    async function loadActivityHistory() {
+      try {
+        const res = await fetch('/api/activity-history', { credentials: 'include' });
+        const data = await res.json();
+        if (data.history && data.history.length > 0) {
+          activityLogEl.innerHTML = data.history
+            .map(log => {
+              const d = new Date(log.timestamp._seconds * 1000);
+              return `<div>${d.toLocaleString()}: ${log.action}</div>`;
+            }).join('');
+        } else {
+          activityLogEl.textContent = 'No activity found.';
+        }
+      } catch (e) {
+        activityLogEl.textContent = 'Failed to load activity.';
+        console.error(e);
+      }
+    }
+
+    // Change password with reauth
+    changePasswordBtn.onclick = async () => {
+      const currentPass = currentPasswordEl.value;
+      const newPass = newPasswordEl.value;
+      if (!currentPass || !newPass) {
+        showMessage('Please fill both password fields');
+        return;
+      }
+      if (newPass.length < 6) {
+        showMessage('New password must be at least 6 characters');
+        return;
+      }
+
+      const user = auth.currentUser;
+      const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
+      changePasswordBtn.disabled = true;
+
+      try {
+        await user.reauthenticateWithCredential(credential);
+        await user.updatePassword(newPass);
+        showMessage('Password changed successfully', true);
+        currentPasswordEl.value = '';
+        newPasswordEl.value = '';
+        // Log password change activity
+        await fetch('/api/log-activity', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'password changed' }),
         });
+      } catch (e) {
+        showMessage(e.message || 'Failed to change password');
+      } finally {
+        changePasswordBtn.disabled = false;
+      }
+    };
 
-        // Change Password
-        async function changePassword() {
-            const currentPassword = document.getElementById("currentPassword").value;
-            const newPassword = document.getElementById("newPassword").value;
+    // Logout
+    logoutBtn.onclick = async () => {
+      await auth.signOut();
+      // Clear session cookie on server
+      await fetch('/api/sessionLogout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      window.location.href = '/';
+    };
 
-            if (!currentPassword || !newPassword) {
-                alert("Please fill in all fields");
-                return;
-            }
+    // Disable Account (placeholder)
+    disableAccountBtn.onclick = () => {
+      alert('Disable account feature is not implemented yet.');
+    };
 
-            const user = auth.currentUser;
-            const cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
-
-            try {
-                await user.reauthenticateWithCredential(cred);
-                await user.updatePassword(newPassword);
-                alert("Password updated successfully");
-            } catch (error) {
-                alert("Error: " + error.message);
-            }
-        }
-
-        // Logout
-        function logout() {
-            auth.signOut().then(() => {
-                window.location.href = "index.html";
-            });
-        }
-
-        // Load Activity History (Mock Example)
-        function loadActivityHistory() {
-            const logElement = document.getElementById("activityLog");
-            // You should replace this with actual DB call
-            logElement.innerHTML = `
-                <p>2025-08-01: Logged in</p>
-                <p>2025-08-05: Changed password</p>
-                <p>2025-08-10: Logged in</p>
-            `;
-        }
-
-        // Disable Account (mock)
-        function disableAccount() {
-            alert("This would disable the account. (Backend needed)");
-        }
-
-        // Delete Account
-        async function deleteAccount() {
-            if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
-                try {
-                    await auth.currentUser.delete();
-                    alert("Account deleted");
-                    window.location.href = "index.html";
-                } catch (error) {
-                    alert("Error: " + error.message);
-                }
-            }
-        }
-    </script>
+    // Delete Account
+    deleteAccountBtn.onclick = async () => {
+      if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
+      deleteAccountBtn.disabled = true;
+      try {
+        await auth.currentUser.delete();
+        // Log deletion (optional)
+        await fetch('/api/log-activity', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'account deleted' }),
+        });
+        alert('Account deleted.');
+        window.location.href = '/';
+      } catch (e) {
+        alert('Failed to delete account: ' + e.message);
+      } finally {
+        deleteAccountBtn.disabled = false;
+      }
+    };
+  </script>
 </body>
 </html>
