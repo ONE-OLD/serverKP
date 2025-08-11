@@ -1,124 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Auth System</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; }
-    .container {
-      max-width: 400px; margin: 50px auto; background: #fff; padding: 20px;
-      border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h2 { text-align: center; }
-    input, button {
-      width: 100%; padding: 10px; margin: 5px 0;
-      border: 1px solid #ccc; border-radius: 4px;
-    }
-    button { background: #4CAF50; color: white; cursor: pointer; }
-    button:hover { background: #45a049; }
-    .link { color: blue; cursor: pointer; text-decoration: underline; }
-    .hidden { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        form {
+            display: none;
+            flex-direction: column;
+        }
+        form.active {
+            display: flex;
+        }
+        input {
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .switch {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .switch a {
+            color: #007BFF;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- Login Form -->
-  <div id="loginForm">
-    <h2>Login</h2>
-    <input type="email" id="loginEmail" placeholder="Email" />
-    <input type="password" id="loginPassword" placeholder="Password" />
-    <button onclick="login()">Login</button>
-    <p><span class="link" onclick="showForm('signupForm')">Create Account</span> | 
-       <span class="link" onclick="showForm('forgotForm')">Forgot Password?</span></p>
-  </div>
+    <!-- Login Form -->
+    <form id="loginForm" class="active">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email" required>
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button type="submit">Login</button>
+        <div class="switch">
+            No account? <a id="toSignup">Sign Up</a><br>
+            Forgot password? <a id="toForgot">Reset</a>
+        </div>
+    </form>
 
-  <!-- Signup Form -->
-  <div id="signupForm" class="hidden">
-    <h2>Sign Up</h2>
-    <input type="email" id="signupEmail" placeholder="Email" />
-    <input type="password" id="signupPassword" placeholder="Password" />
-    <button onclick="signup()">Sign Up</button>
-    <p><span class="link" onclick="showForm('loginForm')">Back to Login</span></p>
-  </div>
+    <!-- Signup Form -->
+    <form id="signupForm">
+        <h2>Sign Up</h2>
+        <input type="email" id="signupEmail" placeholder="Email" required>
+        <input type="password" id="signupPassword" placeholder="Password" required>
+        <button type="submit">Sign Up</button>
+        <div class="switch">
+            Already have an account? <a id="toLoginFromSignup">Login</a>
+        </div>
+    </form>
 
-  <!-- Forgot Password Form -->
-  <div id="forgotForm" class="hidden">
-    <h2>Reset Password</h2>
-    <input type="email" id="forgotEmail" placeholder="Email" />
-    <button onclick="forgotPassword()">Send Reset Link</button>
-    <p><span class="link" onclick="showForm('loginForm')">Back to Login</span></p>
-  </div>
+    <!-- Forgot Password Form -->
+    <form id="forgotForm">
+        <h2>Reset Password</h2>
+        <input type="email" id="forgotEmail" placeholder="Email" required>
+        <button type="submit">Send Reset Email</button>
+        <div class="switch">
+            Remembered? <a id="toLoginFromForgot">Login</a>
+        </div>
+    </form>
 </div>
 
-<!-- Firebase Scripts -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-
 <script>
-  // Firebase Config
-  const firebaseConfig = {
-    apiKey: "AIzaSyD-gCHlAYiX3zJiAeSSSNbQ1qhXJMHLeSQ",
-    authDomain: "katprogrammers-1e30e.firebaseapp.com",
-    projectId: "katprogrammers-1e30e",
-  };
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const forgotForm = document.getElementById('forgotForm');
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
+    document.getElementById('toSignup').onclick = () => switchForm(signupForm);
+    document.getElementById('toForgot').onclick = () => switchForm(forgotForm);
+    document.getElementById('toLoginFromSignup').onclick = () => switchForm(loginForm);
+    document.getElementById('toLoginFromForgot').onclick = () => switchForm(loginForm);
 
-  // Switch Form
-  function showForm(formId) {
-    document.querySelectorAll(".container > div").forEach(div => div.classList.add("hidden"));
-    document.getElementById(formId).classList.remove("hidden");
-  }
-
-  // Login
-  async function login() {
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
-    try {
-      const userCred = await auth.signInWithEmailAndPassword(email, password);
-      const idToken = await userCred.user.getIdToken();
-
-      // Send to backend to create session
-      await fetch("/sessionLogin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken })
-      });
-
-      window.location.href = "/dashboard"; // redirect
-    } catch (error) {
-      alert(error.message);
+    function switchForm(form) {
+        loginForm.classList.remove('active');
+        signupForm.classList.remove('active');
+        forgotForm.classList.remove('active');
+        form.classList.add('active');
     }
-  }
 
-  // Signup
-  async function signup() {
-    const email = document.getElementById("signupEmail").value;
-    const password = document.getElementById("signupPassword").value;
-    try {
-      await auth.createUserWithEmailAndPassword(email, password);
-      alert("Account created! Please log in.");
-      showForm("loginForm");
-    } catch (error) {
-      alert(error.message);
-    }
-  }
+    // You can attach Firebase functions here
+    loginForm.onsubmit = e => {
+        e.preventDefault();
+        console.log("Login:", loginEmail.value, loginPassword.value);
+        // TODO: Firebase login
+    };
 
-  // Forgot Password
-  async function forgotPassword() {
-    const email = document.getElementById("forgotEmail").value;
-    try {
-      await auth.sendPasswordResetEmail(email);
-      alert("Password reset link sent!");
-      showForm("loginForm");
-    } catch (error) {
-      alert(error.message);
-    }
-  }
+    signupForm.onsubmit = e => {
+        e.preventDefault();
+        console.log("Sign Up:", signupEmail.value, signupPassword.value);
+        // TODO: Firebase signup
+    };
+
+    forgotForm.onsubmit = e => {
+        e.preventDefault();
+        console.log("Reset Email:", forgotEmail.value);
+        // TODO: Firebase reset password
+    };
 </script>
+
 </body>
 </html>
