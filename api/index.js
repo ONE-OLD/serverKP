@@ -52,13 +52,15 @@ const db = admin.firestore();
 
 const checkAuth = async (req, res, next) => {
   const sessionCookie = req.cookies.session || '';
-
   try {
     const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true);
     req.user = decodedClaims;
     next();
   } catch (error) {
     console.error('Authentication failed:', error);
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     res.redirect('/');
   }
 };
@@ -73,12 +75,10 @@ async function logActivity(userId, action) {
     });
 }
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Login & create session cookie & log login
 app.post('/api/sessionLogin', async (req, res) => {
   try {
     const sessionCookie = await admin.auth().createSessionCookie(req.body.idToken, {
@@ -91,7 +91,7 @@ app.post('/api/sessionLogin', async (req, res) => {
     res.cookie('session', sessionCookie, {
       maxAge: 60 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production' ? true : false, // secure false on dev
       sameSite: 'lax',
       path: '/',
     });
@@ -103,13 +103,11 @@ app.post('/api/sessionLogin', async (req, res) => {
   }
 });
 
-// Logout — clear session cookie
 app.post('/api/sessionLogout', (req, res) => {
   res.clearCookie('session', { path: '/' });
   res.json({ status: 'logged out' });
 });
 
-// Get activity history for logged in user
 app.get('/api/activity-history', checkAuth, async (req, res) => {
   try {
     const logsRef = db.collection('userActivity')
@@ -131,7 +129,6 @@ app.get('/api/activity-history', checkAuth, async (req, res) => {
   }
 });
 
-// Log arbitrary user activity (e.g., password changed, account deleted)
 app.post('/api/log-activity', checkAuth, async (req, res) => {
   try {
     const { action } = req.body;
@@ -144,7 +141,6 @@ app.post('/api/log-activity', checkAuth, async (req, res) => {
   }
 });
 
-// Protected routes serving private HTML views
 const protectedRoutes = [
   'dashboard', 'apps', 'tutorials', 'html', 'css',
   'javascript', 'python', 'cpp', 'mysql', 'profile',
@@ -157,12 +153,10 @@ protectedRoutes.forEach(route => {
   });
 });
 
-// Root serves index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Error handling
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({ error: 'Internal server error' });
